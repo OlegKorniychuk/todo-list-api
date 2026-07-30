@@ -56,3 +56,6 @@ running Postgres (`docker compose up -d db` works for just the DB).
   dependency tree. Fixing requires major version bumps of those tools; left alone deliberately.
 - do not mention claude in commit messages
 - always ask for permission before any commit
+- always `await` calls to `async` functions explicitly (including `return await x()` in a handler),
+  even where returning the bare promise would behave the same — don't rely on implicit promise-return
+  semantics
