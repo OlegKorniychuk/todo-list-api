@@ -10,68 +10,77 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { TaskStatus } from '../../db/schema';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { TasksService } from './tasks.service';
 
-// TODO: @UseGuards(JwtAuthGuard) + resolve real user id from request.
-const TODO_USER_ID = 'TODO-user-id';
-
 @Controller('lists/:listId/tasks')
+@UseGuards(JwtAuthGuard)
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  create(
+  async create(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Body() dto: CreateTaskDto,
   ) {
-    return this.tasksService.create(TODO_USER_ID, listId, dto);
+    return await this.tasksService.create(userId, listId, dto);
   }
 
   @Get()
-  findAll(
+  async findAll(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Query('status') status?: TaskStatus,
   ) {
-    return this.tasksService.findAll(TODO_USER_ID, listId, status);
+    return {
+      data: await this.tasksService.findAll(userId, listId, status),
+    };
   }
 
   @Get(':taskId')
-  findOne(
+  async findOne(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
   ) {
-    return this.tasksService.findOne(TODO_USER_ID, listId, taskId);
+    return await this.tasksService.findOne(userId, listId, taskId);
   }
 
   @Patch(':taskId')
-  update(
+  async update(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body() dto: UpdateTaskDto,
   ) {
-    return this.tasksService.update(TODO_USER_ID, listId, taskId, dto);
+    return await this.tasksService.update(userId, listId, taskId, dto);
   }
 
   @Patch(':taskId/status')
-  updateStatus(
+  async updateStatus(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
     @Body() dto: UpdateTaskStatusDto,
   ) {
-    return this.tasksService.updateStatus(TODO_USER_ID, listId, taskId, dto);
+    return await this.tasksService.updateStatus(userId, listId, taskId, dto);
   }
 
   @Delete(':taskId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
+  async remove(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Param('taskId', ParseUUIDPipe) taskId: string,
   ) {
-    return this.tasksService.remove(TODO_USER_ID, listId, taskId);
+    return await this.tasksService.remove(userId, listId, taskId);
   }
 }

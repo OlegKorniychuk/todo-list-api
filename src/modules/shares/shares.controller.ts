@@ -8,36 +8,42 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateShareDto } from './dto/create-share.dto';
 import { SharesService } from './shares.service';
 
-// TODO: @UseGuards(JwtAuthGuard) + resolve real owner id from request.
-const TODO_USER_ID = 'TODO-user-id';
-
 @Controller('lists/:listId/shares')
+@UseGuards(JwtAuthGuard)
 export class SharesController {
   constructor(private readonly sharesService: SharesService) {}
 
   @Post()
-  create(
+  async create(
+    @CurrentUser('id') userId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
     @Body() dto: CreateShareDto,
   ) {
-    return this.sharesService.create(TODO_USER_ID, listId, dto);
+    return await this.sharesService.create(userId, listId, dto);
   }
 
   @Get()
-  findAll(@Param('listId', ParseUUIDPipe) listId: string) {
-    return this.sharesService.findAll(TODO_USER_ID, listId);
+  async findAll(
+    @CurrentUser('id') userId: string,
+    @Param('listId', ParseUUIDPipe) listId: string,
+  ) {
+    return { data: await this.sharesService.findAll(userId, listId) };
   }
 
   @Delete(':userId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
+  async remove(
+    @CurrentUser('id') callerId: string,
     @Param('listId', ParseUUIDPipe) listId: string,
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @Param('userId', ParseUUIDPipe) targetUserId: string,
   ) {
-    return this.sharesService.remove(TODO_USER_ID, listId, userId);
+    return await this.sharesService.remove(callerId, listId, targetUserId);
   }
 }
