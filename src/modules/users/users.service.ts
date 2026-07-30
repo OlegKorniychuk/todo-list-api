@@ -1,23 +1,52 @@
-import { Inject, Injectable, NotImplementedException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import { eq, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../db/drizzle.constants';
 import { Database } from '../../db/drizzle.types';
+import { NewUser, User, users } from '../../db/schema';
 
 @Injectable()
 export class UsersService {
+  private PG_UNIQUE_VIOLATION = '23505';
+
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
-  findById(_id: string): never {
-    void this.db;
-    throw new NotImplementedException('UsersService.findById not implemented');
+  async findById(id: string): Promise<User | undefined> {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    return user;
   }
 
-  findByEmail(_email: string): never {
-    throw new NotImplementedException(
-      'UsersService.findByEmail not implemented',
+  async findByEmail(email: string): Promise<User | undefined> {
+    const [user] = await this.db
+      .select()
+      .from(users)
+      .where(sql`lower(${users.email}) = lower(${email})`)
+      .limit(1);
+    return user;
+  }
+
+  async create(email: string, passwordHash: string): Promise<User> {
+    const newUser: NewUser = { email: email.toLowerCase(), passwordHash };
+    try {
+      const [user] = await this.db.insert(users).values(newUser).returning();
+      return user;
+    } catch (err) {
+      if (this.isUniqueViolation(err)) {
+        throw new ConflictException('Email already registered');
+      }
+      throw err;
+    }
+  }
+
+  private isUniqueViolation(err: unknown): boolean {
+    return (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code?: unknown }).code === this.PG_UNIQUE_VIOLATION
     );
-  }
-
-  create(_email: string, _passwordHash: string): never {
-    throw new NotImplementedException('UsersService.create not implemented');
   }
 }
