@@ -12,12 +12,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateListDto } from './dto/create-list.dto';
 import { RenameListDto } from './dto/rename-list.dto';
 import { ListsService } from './lists.service';
 
+@ApiTags('lists')
+@ApiBearerAuth('access-token')
 @Controller('lists')
 @UseGuards(JwtAuthGuard)
 export class ListsController {
