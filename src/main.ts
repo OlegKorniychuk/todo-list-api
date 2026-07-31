@@ -29,6 +29,12 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup('docs', app, swaggerDocument);
 
   const config = app.get(ConfigService);
+
+  app.enableCors({
+    origin: config.get<string[] | undefined>('cors.origin') ?? false,
+    credentials: false,
+  });
+
   const port = config.get<number>('port', 3000);
   await app.listen(port);
 }

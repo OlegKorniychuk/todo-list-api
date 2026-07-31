@@ -10,4 +10,9 @@ export default () => ({
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshTtl: process.env.JWT_REFRESH_TTL ?? '7d',
   },
+  cors: {
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+      : undefined,
+  },
 });

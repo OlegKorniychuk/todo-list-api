@@ -42,6 +42,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   JWT_REFRESH_TTL: string = '7d';
+
+  @IsOptional()
+  @IsString()
+  CORS_ORIGIN: string = '';
 }
 
 export function validateEnv(
