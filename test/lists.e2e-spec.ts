@@ -79,6 +79,39 @@ describe('Lists (e2e)', () => {
     it('401 rejects a missing token', async () => {
       await request(ctx.server).get('/api/v1/lists').expect(401);
     });
+
+    it('200 orders owned and shared lists together by creation date, not by which query found them', async () => {
+      const otherOwner = await registerUser(ctx.server, 'other@example.com');
+      const user = await registerUser(ctx.server, 'user@example.com');
+
+      const olderSharedList = await createList(
+        ctx.server,
+        otherOwner.accessToken,
+        'Older shared list',
+      );
+      await shareList(
+        ctx.server,
+        otherOwner.accessToken,
+        olderSharedList.id,
+        user.email,
+      );
+      const newerOwnedList = await createList(
+        ctx.server,
+        user.accessToken,
+        'Newer owned list',
+      );
+
+      const response = await request(ctx.server)
+        .get('/api/v1/lists')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      const body = response.body as { data: { id: string; role: string }[] };
+      expect(body.data.map((l) => l.id)).toEqual([
+        olderSharedList.id,
+        newerOwnedList.id,
+      ]);
+    });
   });
 
   describe('GET /lists/:listId', () => {

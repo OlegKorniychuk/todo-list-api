@@ -69,6 +69,7 @@ export interface CreatedTask {
   listId: string;
   title: string;
   status: string;
+  position: number;
 }
 
 export async function createTask(

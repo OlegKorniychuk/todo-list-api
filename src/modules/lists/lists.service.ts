@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../db/drizzle.constants';
 import { Database } from '../../db/drizzle.types';
 import { listShares, TodoList, todoLists } from '../../db/schema';
@@ -46,7 +46,8 @@ export class ListsService {
       const owned = await this.db
         .select()
         .from(todoLists)
-        .where(eq(todoLists.ownerId, userId));
+        .where(eq(todoLists.ownerId, userId))
+        .orderBy(asc(todoLists.createdAt));
       resources.push(...owned.map((list) => this.toResource(list, 'owner')));
     }
 
@@ -55,12 +56,18 @@ export class ListsService {
         .select({ list: todoLists })
         .from(listShares)
         .innerJoin(todoLists, eq(listShares.listId, todoLists.id))
-        .where(eq(listShares.userId, userId));
+        .where(eq(listShares.userId, userId))
+        .orderBy(asc(todoLists.createdAt));
       resources.push(
         ...shared.map(({ list }) => this.toResource(list, 'viewer')),
       );
     }
 
+    // Owned and shared lists come from two separate queries; each is sorted
+    // internally, but the concatenation above isn't globally ordered when
+    // both blocks are present (e.g. a newer owned list next to an older
+    // shared one), so re-sort the merged result once.
+    resources.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     return resources;
   }
 

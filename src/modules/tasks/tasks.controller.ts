@@ -17,6 +17,7 @@ import { TaskStatus } from '../../db/schema';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { ReorderTaskDto } from './dto/reorder-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 import { TasksService } from './tasks.service';
@@ -75,6 +76,16 @@ export class TasksController {
     @Body() dto: UpdateTaskStatusDto,
   ) {
     return await this.tasksService.updateStatus(userId, listId, taskId, dto);
+  }
+
+  @Patch(':taskId/position')
+  async reorder(
+    @CurrentUser('id') userId: string,
+    @Param('listId', ParseUUIDPipe) listId: string,
+    @Param('taskId', ParseUUIDPipe) taskId: string,
+    @Body() dto: ReorderTaskDto,
+  ) {
+    return await this.tasksService.reorder(userId, listId, taskId, dto);
   }
 
   @Delete(':taskId')

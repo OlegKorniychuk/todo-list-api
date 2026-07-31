@@ -12,6 +12,7 @@ function chain(result: unknown) {
     from: jest.fn(() => node),
     where: jest.fn(() => node),
     innerJoin: jest.fn(() => node),
+    orderBy: jest.fn(() => node),
     limit: jest.fn(() => node),
     values: jest.fn(() => node),
     set: jest.fn(() => node),
@@ -108,6 +109,19 @@ describe('ListsService', () => {
         [{ ...sharedRow, role: 'viewer' }],
       );
       expect(mockDb.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-sorts owned and shared lists together by createdAt when a newer owned list would otherwise print before an older shared one', async () => {
+      const olderShared = { ...sharedRow, createdAt: new Date('2025-06-01') };
+      const newerOwned = { ...ownedRow, createdAt: new Date('2026-06-01') };
+      mockDb.select
+        .mockReturnValueOnce(chain([newerOwned]))
+        .mockReturnValueOnce(chain([{ list: olderShared }]));
+
+      await expect(service.findAllForUser('user-1')).resolves.toEqual([
+        { ...olderShared, role: 'viewer' },
+        { ...newerOwned, role: 'owner' },
+      ]);
     });
   });
 

@@ -130,6 +130,32 @@ describe('Tasks (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
     });
+
+    it('200 returns tasks ordered by position, reflecting a manual reorder', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
+      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
+      const taskC = await createTask(ctx.server, owner.accessToken, list.id, 'C');
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${taskC.id}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: null })
+        .expect(200);
+
+      const response = await request(ctx.server)
+        .get(`/api/v1/lists/${list.id}/tasks`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .expect(200);
+
+      const body = response.body as { data: { id: string }[] };
+      expect(body.data.map((t) => t.id)).toEqual([
+        taskC.id,
+        taskA.id,
+        taskB.id,
+      ]);
+    });
   });
 
   describe('GET /lists/:listId/tasks/:taskId', () => {
@@ -262,6 +288,110 @@ describe('Tasks (e2e)', () => {
         .patch(`/api/v1/lists/${list.id}/tasks/${NONEXISTENT_ID}/status`)
         .set('Authorization', `Bearer ${owner.accessToken}`)
         .send({ status: 'done' })
+        .expect(404);
+    });
+  });
+
+  describe('PATCH /lists/:listId/tasks/:taskId/position', () => {
+    it('200 moves a task to the top when afterTaskId is null', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
+      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
+
+      const response = await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${taskB.id}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: null })
+        .expect(200);
+
+      const body = response.body as { id: string; position: number };
+      expect(body.id).toBe(taskB.id);
+      expect(body.position).toBeLessThan(taskA.position);
+    });
+
+    it('200 moves a task after a sibling', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
+      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
+      const taskC = await createTask(ctx.server, owner.accessToken, list.id, 'C');
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${taskA.id}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: taskB.id })
+        .expect(200);
+
+      const response = await request(ctx.server)
+        .get(`/api/v1/lists/${list.id}/tasks`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .expect(200);
+
+      const body = response.body as { data: { id: string }[] };
+      expect(body.data.map((t) => t.id)).toEqual([
+        taskB.id,
+        taskA.id,
+        taskC.id,
+      ]);
+    });
+
+    it('400 rejects afterTaskId referencing the task itself', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+      const task = await createTask(ctx.server, owner.accessToken, list.id);
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${task.id}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: task.id })
+        .expect(400);
+    });
+
+    it('403 rejects a viewer', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const viewer = await registerUser(ctx.server, 'viewer@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+      await shareList(ctx.server, owner.accessToken, list.id, viewer.email);
+      const task = await createTask(ctx.server, owner.accessToken, list.id);
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${task.id}/position`)
+        .set('Authorization', `Bearer ${viewer.accessToken}`)
+        .send({ afterTaskId: null })
+        .expect(403);
+    });
+
+    it('404 rejects a nonexistent task', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const list = await createList(ctx.server, owner.accessToken);
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${list.id}/tasks/${NONEXISTENT_ID}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: null })
+        .expect(404);
+    });
+
+    it('404 rejects an afterTaskId belonging to a different list', async () => {
+      const owner = await registerUser(ctx.server, 'owner@example.com');
+      const listOne = await createList(ctx.server, owner.accessToken, 'One');
+      const listTwo = await createList(ctx.server, owner.accessToken, 'Two');
+      const taskInListOne = await createTask(
+        ctx.server,
+        owner.accessToken,
+        listOne.id,
+      );
+      const taskInListTwo = await createTask(
+        ctx.server,
+        owner.accessToken,
+        listTwo.id,
+      );
+
+      await request(ctx.server)
+        .patch(`/api/v1/lists/${listOne.id}/tasks/${taskInListOne.id}/position`)
+        .set('Authorization', `Bearer ${owner.accessToken}`)
+        .send({ afterTaskId: taskInListTwo.id })
         .expect(404);
     });
   });
