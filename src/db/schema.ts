@@ -1,5 +1,6 @@
 import { relations, sql } from 'drizzle-orm';
 import {
+  doublePrecision,
   index,
   pgEnum,
   pgTable,
@@ -86,10 +87,11 @@ export const tasks = pgTable(
     title: varchar('title', { length: 255 }).notNull(),
     description: text('description'),
     status: taskStatus('status').default('todo').notNull(),
+    position: doublePrecision('position').notNull(),
     ...timestamps,
   },
   (table) => [
-    index('tasks_list_id_idx').on(table.listId),
+    index('tasks_list_id_position_idx').on(table.listId, table.position),
     index('tasks_list_id_status_idx').on(table.listId, table.status),
   ],
 );
