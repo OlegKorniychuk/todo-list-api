@@ -134,9 +134,24 @@ describe('Tasks (e2e)', () => {
     it('200 returns tasks ordered by position, reflecting a manual reorder', async () => {
       const owner = await registerUser(ctx.server, 'owner@example.com');
       const list = await createList(ctx.server, owner.accessToken);
-      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
-      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
-      const taskC = await createTask(ctx.server, owner.accessToken, list.id, 'C');
+      const taskA = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'A',
+      );
+      const taskB = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'B',
+      );
+      const taskC = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'C',
+      );
 
       await request(ctx.server)
         .patch(`/api/v1/lists/${list.id}/tasks/${taskC.id}/position`)
@@ -296,8 +311,18 @@ describe('Tasks (e2e)', () => {
     it('200 moves a task to the top when afterTaskId is null', async () => {
       const owner = await registerUser(ctx.server, 'owner@example.com');
       const list = await createList(ctx.server, owner.accessToken);
-      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
-      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
+      const taskA = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'A',
+      );
+      const taskB = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'B',
+      );
 
       const response = await request(ctx.server)
         .patch(`/api/v1/lists/${list.id}/tasks/${taskB.id}/position`)
@@ -313,9 +338,24 @@ describe('Tasks (e2e)', () => {
     it('200 moves a task after a sibling', async () => {
       const owner = await registerUser(ctx.server, 'owner@example.com');
       const list = await createList(ctx.server, owner.accessToken);
-      const taskA = await createTask(ctx.server, owner.accessToken, list.id, 'A');
-      const taskB = await createTask(ctx.server, owner.accessToken, list.id, 'B');
-      const taskC = await createTask(ctx.server, owner.accessToken, list.id, 'C');
+      const taskA = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'A',
+      );
+      const taskB = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'B',
+      );
+      const taskC = await createTask(
+        ctx.server,
+        owner.accessToken,
+        list.id,
+        'C',
+      );
 
       await request(ctx.server)
         .patch(`/api/v1/lists/${list.id}/tasks/${taskA.id}/position`)
