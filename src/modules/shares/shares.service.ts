@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
+import { isUniqueViolation } from '../../common/db/pg-error';
 import { DRIZZLE } from '../../db/drizzle.constants';
 import { Database } from '../../db/drizzle.types';
 import { ListShare, listShares, todoLists, users } from '../../db/schema';
@@ -24,8 +25,6 @@ export interface ShareResource {
 
 @Injectable()
 export class SharesService {
-  private readonly PG_UNIQUE_VIOLATION = '23505';
-
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly listAccessService: ListAccessService,
@@ -56,7 +55,7 @@ export class SharesService {
         .returning();
       return this.toResource(share, target.email);
     } catch (err) {
-      if (this.isUniqueViolation(err)) {
+      if (isUniqueViolation(err)) {
         throw new ConflictException('List already shared with this user');
       }
       throw err;
@@ -111,15 +110,6 @@ export class SharesService {
       }
     }
     throw new ForbiddenException();
-  }
-
-  private isUniqueViolation(err: unknown): boolean {
-    return (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code?: unknown }).code === this.PG_UNIQUE_VIOLATION
-    );
   }
 
   private toResource(share: ListShare, email: string): ShareResource {

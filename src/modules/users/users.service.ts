@@ -1,13 +1,12 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
+import { isUniqueViolation } from '../../common/db/pg-error';
 import { DRIZZLE } from '../../db/drizzle.constants';
 import { Database } from '../../db/drizzle.types';
 import { NewUser, User, users } from '../../db/schema';
 
 @Injectable()
 export class UsersService {
-  private PG_UNIQUE_VIOLATION = '23505';
-
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
   async findById(id: string): Promise<User | undefined> {
@@ -34,19 +33,10 @@ export class UsersService {
       const [user] = await this.db.insert(users).values(newUser).returning();
       return user;
     } catch (err) {
-      if (this.isUniqueViolation(err)) {
+      if (isUniqueViolation(err)) {
         throw new ConflictException('Email already registered');
       }
       throw err;
     }
-  }
-
-  private isUniqueViolation(err: unknown): boolean {
-    return (
-      typeof err === 'object' &&
-      err !== null &&
-      'code' in err &&
-      (err as { code?: unknown }).code === this.PG_UNIQUE_VIOLATION
-    );
   }
 }
